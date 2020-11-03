@@ -1,0 +1,36 @@
+# external repository consuming YAML templates by tag ref
+# repository endpoint is an Azure DevOps project service connection 
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/repos/multi-repo-checkout?view=azure-devops
+
+resources:
+  repositories:
+    - repository: InfraTemplates
+      type: github
+      endpoint: github-repo
+      name: modularity/terraform-azure-devops-starter
+      ref: refs/tags/v1.0 # optional ref to pin to
+
+variables:
+- group: terraform-secrets
+    
+stages:
+- template: /101-terraform-job/terraform-stages-template.yml@InfraTemplates  
+  parameters:
+    environment: stage
+    environmentDisplayName: Build
+    TerraformArguments: >-
+      -var department=Engineering
+    # For additional security, pass secret through environment instead of command line.
+    # Terraform recognizes TF_VAR prefixed environment variables.
+    TerraformEnvVariables:
+      TF_VAR_sql2password: $(SQL_PASSWORD)
+
+- template: /101-terraform-job/terraform-stages-template.yml@InfraTemplates  
+  parameters:
+    environment: qa
+    environmentDisplayName: Deploy
+    TerraformArguments: >-
+      -var department=QA
+    TerraformEnvVariables:
+      TF_VAR_sql2password: $(SQL_PASSWORD)
+
